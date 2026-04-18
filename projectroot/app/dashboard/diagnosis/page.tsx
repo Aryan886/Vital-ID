@@ -16,6 +16,8 @@ export default async function DiagnosisPage() {
       <DiagnosisWorkspace
         demoMode={data.demoMode}
         initialEntries={data.diagnoses}
+        canEdit={data.viewer.role === "doctor"}
+        canViewSensitive={data.viewer.canViewSensitive}
       />
     </>
   );

@@ -12,8 +12,8 @@ import { usePathname } from "next/navigation";
 
 import { LogoutButton } from "@/components/auth/logout-button";
 import { Badge } from "@/components/ui/badge";
-import { cn } from "@/lib/utils";
-import type { ProfileSummary } from "@/types";
+import { cn, getAccessLabel, maskPhoneNumber } from "@/lib/utils";
+import type { ProfileSummary, SessionRole } from "@/types";
 
 const navigation = [
   {
@@ -41,11 +41,17 @@ const navigation = [
 interface DashboardSidebarProps {
   demoMode: boolean;
   profile: ProfileSummary;
+  viewerRole: SessionRole;
+  licenseNumber: string | null;
+  licenseVerified: boolean;
 }
 
 export function DashboardSidebar({
   demoMode,
-  profile
+  profile,
+  viewerRole,
+  licenseNumber,
+  licenseVerified
 }: DashboardSidebarProps) {
   const pathname = usePathname();
 
@@ -68,7 +74,7 @@ export function DashboardSidebar({
             className="shrink-0 border-white/10 bg-white/5 text-slate-100"
             variant="outline"
           >
-            {demoMode ? "Demo mode" : "Authenticated"}
+            {demoMode ? "Demo mode" : "Authenticated"} / {getAccessLabel(viewerRole)}
           </Badge>
         </div>
 
@@ -79,9 +85,23 @@ export function DashboardSidebar({
             {profile.role} / Blood group {profile.bloodType}
           </p>
           <p className="mt-4 text-xs uppercase tracking-[0.24em] text-slate-500">
+            {viewerRole === "doctor" ? "Licence status" : "Privacy mode"}
+          </p>
+          <p className="mt-1 text-sm text-slate-200">
+            {viewerRole === "doctor"
+              ? licenseVerified && licenseNumber
+                ? `Verified / ${licenseNumber}`
+                : "Doctor verification pending"
+              : "Internal clinician notes are hidden"}
+          </p>
+          <p className="mt-4 text-xs uppercase tracking-[0.24em] text-slate-500">
             Emergency contact
           </p>
-          <p className="mt-1 text-sm text-slate-200">{profile.emergencyContact}</p>
+          <p className="mt-1 text-sm text-slate-200">
+            {viewerRole === "doctor"
+              ? profile.emergencyContact
+              : maskPhoneNumber(profile.emergencyContact)}
+          </p>
         </div>
 
         <nav className="flex gap-2 overflow-x-auto pb-2 lg:flex-1 lg:flex-col lg:overflow-visible">

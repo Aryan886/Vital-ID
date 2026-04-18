@@ -1,7 +1,14 @@
 import { createClient } from "@supabase/supabase-js";
 
 export const AUTH_COOKIE_NAME = "vital-id-access-token";
+export const AUTH_ROLE_COOKIE_NAME = "vital-id-session-role";
+export const AUTH_LICENSE_COOKIE_NAME = "vital-id-license-number";
+export const AUTH_LICENSE_VERIFIED_COOKIE_NAME = "vital-id-license-verified";
 export const DEMO_SESSION_TOKEN = "demo-session";
+
+export function isSessionRole(value: string | undefined | null): value is "doctor" | "patient" {
+  return value === "doctor" || value === "patient";
+}
 
 export function getSupabaseEnv() {
   return {

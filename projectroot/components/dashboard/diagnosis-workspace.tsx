@@ -5,7 +5,13 @@ import { type FormEvent, useMemo, useState } from "react";
 
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle
+} from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -17,18 +23,21 @@ import type { DiagnosisEntry } from "@/types";
 interface DiagnosisWorkspaceProps {
   demoMode: boolean;
   initialEntries: DiagnosisEntry[];
+  canEdit: boolean;
+  canViewSensitive: boolean;
 }
 
 export function DiagnosisWorkspace({
   demoMode,
-  initialEntries
+  initialEntries,
+  canEdit,
+  canViewSensitive
 }: DiagnosisWorkspaceProps) {
   const [entries, setEntries] = useState(initialEntries);
   const [caseId, setCaseId] = useState(initialEntries[0]?.caseId ?? "CASE-1001");
   const [authorName, setAuthorName] = useState("Dr. Collaborative Team");
   const [specialty, setSpecialty] = useState("General Medicine");
-  const [status, setStatus] =
-    useState<DiagnosisEntry["status"]>("Shared");
+  const [status, setStatus] = useState<DiagnosisEntry["status"]>("Shared");
   const [note, setNote] = useState("");
   const [feedback, setFeedback] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -127,7 +136,11 @@ export function DiagnosisWorkspace({
   };
 
   return (
-    <div className="grid gap-6 xl:grid-cols-[1.3fr_0.7fr]">
+    <div
+      className={`grid gap-6 ${
+        canEdit ? "xl:grid-cols-[1.3fr_0.7fr]" : "xl:grid-cols-1"
+      }`}
+    >
       <Card>
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
@@ -135,8 +148,9 @@ export function DiagnosisWorkspace({
             Shared case workspace
           </CardTitle>
           <CardDescription>
-            Add multiple specialist viewpoints to a single diagnosis case
-            without losing timeline context.
+            {canViewSensitive
+              ? "Add multiple specialist viewpoints to a single diagnosis case without losing timeline context."
+              : "Patient mode shows case progress while internal clinical commentary remains protected."}
           </CardDescription>
         </CardHeader>
         <CardContent>
@@ -174,7 +188,7 @@ export function DiagnosisWorkspace({
                       <div>
                         <div className="flex flex-wrap items-center gap-2">
                           <p className="font-semibold text-slate-900">
-                            {entry.authorName}
+                            {canViewSensitive ? entry.authorName : "Care team member"}
                           </p>
                           <Badge
                             variant={
@@ -188,13 +202,19 @@ export function DiagnosisWorkspace({
                             {entry.status}
                           </Badge>
                         </div>
-                        <p className="mt-1 text-sm text-slate-500">{entry.specialty}</p>
+                        <p className="mt-1 text-sm text-slate-500">
+                          {canViewSensitive ? entry.specialty : "Specialty hidden"}
+                        </p>
                       </div>
                       <div className="text-sm text-slate-500">
                         {formatDateTime(entry.createdAt)}
                       </div>
                     </div>
-                    <p className="mt-4 leading-7 text-slate-700">{entry.note}</p>
+                    <p className="mt-4 leading-7 text-slate-700">
+                      {canViewSensitive
+                        ? entry.note
+                        : "Internal clinician notes are hidden in patient mode. The current status remains visible without exposing protected review details."}
+                    </p>
                     <div className="mt-4 text-xs uppercase tracking-[0.22em] text-slate-400">
                       Confidence {Math.round(entry.confidenceScore * 100)}%
                     </div>
@@ -216,10 +236,10 @@ export function DiagnosisWorkspace({
                       </div>
                       <div>
                         <p className="font-semibold text-slate-900">
-                          {contributor.authorName}
+                          {canViewSensitive ? contributor.authorName : "Verified clinician"}
                         </p>
                         <p className="text-sm text-slate-500">
-                          {contributor.specialty}
+                          {canViewSensitive ? contributor.specialty : "Specialty hidden"}
                         </p>
                       </div>
                     </div>
@@ -235,83 +255,102 @@ export function DiagnosisWorkspace({
         </CardContent>
       </Card>
 
-      <Card>
-        <CardHeader>
-          <CardTitle>Add case entry</CardTitle>
-          <CardDescription>
-            Capture another specialist note, triage update, or evidence-based
-            observation for the selected case.
-          </CardDescription>
-        </CardHeader>
-        <CardContent>
-          <form className="space-y-4" onSubmit={handleSubmit}>
-            <div className="space-y-2">
-              <Label htmlFor="case-id">Case ID</Label>
-              <Input
-                id="case-id"
-                value={caseId}
-                onChange={(event) => setCaseId(event.target.value)}
-              />
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="author-name">Author</Label>
-              <Input
-                id="author-name"
-                value={authorName}
-                onChange={(event) => setAuthorName(event.target.value)}
-              />
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="specialty">Specialty</Label>
-              <Input
-                id="specialty"
-                value={specialty}
-                onChange={(event) => setSpecialty(event.target.value)}
-              />
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="status">Entry status</Label>
-              <select
-                id="status"
-                className="flex h-11 w-full rounded-xl border border-input bg-white/90 px-3 py-2 text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
-                value={status}
-                onChange={(event) =>
-                  setStatus(event.target.value as DiagnosisEntry["status"])
-                }
-              >
-                <option value="Shared">Shared</option>
-                <option value="Needs Review">Needs Review</option>
-                <option value="Resolved">Resolved</option>
-              </select>
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="note">Clinical note</Label>
-              <Textarea
-                id="note"
-                placeholder="Add your specialist observation, recommendation, or follow-up request..."
-                value={note}
-                onChange={(event) => setNote(event.target.value)}
-                required
-              />
-            </div>
-            {feedback ? (
-              <div className="rounded-2xl border border-teal-100 bg-teal-50 px-4 py-3 text-sm text-teal-800">
-                {feedback}
+      {canEdit ? (
+        <Card>
+          <CardHeader>
+            <CardTitle>Add case entry</CardTitle>
+            <CardDescription>
+              Capture another specialist note, triage update, or evidence-based
+              observation for the selected case.
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            <form className="space-y-4" onSubmit={handleSubmit}>
+              <div className="space-y-2">
+                <Label htmlFor="case-id">Case ID</Label>
+                <Input
+                  id="case-id"
+                  value={caseId}
+                  onChange={(event) => setCaseId(event.target.value)}
+                />
               </div>
-            ) : null}
-            <Button className="w-full" type="submit" disabled={isSubmitting}>
-              {isSubmitting ? (
-                <>
-                  <LoaderCircle className="h-4 w-4 animate-spin" />
-                  Publishing entry
-                </>
-              ) : (
-                "Share diagnosis update"
-              )}
-            </Button>
-          </form>
-        </CardContent>
-      </Card>
+              <div className="space-y-2">
+                <Label htmlFor="author-name">Author</Label>
+                <Input
+                  id="author-name"
+                  value={authorName}
+                  onChange={(event) => setAuthorName(event.target.value)}
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="specialty">Specialty</Label>
+                <Input
+                  id="specialty"
+                  value={specialty}
+                  onChange={(event) => setSpecialty(event.target.value)}
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="status">Entry status</Label>
+                <select
+                  id="status"
+                  className="flex h-11 w-full rounded-xl border border-input bg-white/90 px-3 py-2 text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                  value={status}
+                  onChange={(event) =>
+                    setStatus(event.target.value as DiagnosisEntry["status"])
+                  }
+                >
+                  <option value="Shared">Shared</option>
+                  <option value="Needs Review">Needs Review</option>
+                  <option value="Resolved">Resolved</option>
+                </select>
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="note">Clinical note</Label>
+                <Textarea
+                  id="note"
+                  placeholder="Add your specialist observation, recommendation, or follow-up request..."
+                  value={note}
+                  onChange={(event) => setNote(event.target.value)}
+                  required
+                />
+              </div>
+              {feedback ? (
+                <div className="rounded-2xl border border-teal-100 bg-teal-50 px-4 py-3 text-sm text-teal-800">
+                  {feedback}
+                </div>
+              ) : null}
+              <Button className="w-full" type="submit" disabled={isSubmitting}>
+                {isSubmitting ? (
+                  <>
+                    <LoaderCircle className="h-4 w-4 animate-spin" />
+                    Publishing entry
+                  </>
+                ) : (
+                  "Share diagnosis update"
+                )}
+              </Button>
+            </form>
+          </CardContent>
+        </Card>
+      ) : (
+        <Card>
+          <CardHeader>
+            <CardTitle>Protected collaboration</CardTitle>
+            <CardDescription>
+              Patient sessions can follow case status, but only verified doctors
+              can add entries or reveal full internal commentary.
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="text-sm leading-7 text-slate-600">
+            <p>
+              Sign in as a doctor with a verified licence number to add entries,
+              view specialist identities, and access the complete collaborative
+              diagnosis workspace.
+            </p>
+          </CardContent>
+        </Card>
+      )}
     </div>
   );
 }

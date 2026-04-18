@@ -3,9 +3,13 @@ import { cookies } from "next/headers";
 import { mockDashboardData } from "@/lib/mock-data";
 import {
   AUTH_COOKIE_NAME,
+  AUTH_LICENSE_COOKIE_NAME,
+  AUTH_LICENSE_VERIFIED_COOKIE_NAME,
+  AUTH_ROLE_COOKIE_NAME,
   DEMO_SESSION_TOKEN,
   createServerSupabaseClient,
-  hasSupabaseEnv
+  hasSupabaseEnv,
+  isSessionRole
 } from "@/lib/supabase/client";
 import type { DashboardData, DiagnosisEntry, MedicalRecord, ProfileSummary } from "@/types";
 
@@ -60,15 +64,30 @@ function mapDiagnosis(raw: Record<string, unknown>): DiagnosisEntry {
 export async function getDashboardData(): Promise<DashboardData> {
   const cookieStore = await cookies();
   const accessToken = cookieStore.get(AUTH_COOKIE_NAME)?.value;
+  const roleValue = cookieStore.get(AUTH_ROLE_COOKIE_NAME)?.value;
+  const viewerRole = isSessionRole(roleValue) ? roleValue : "patient";
+  const viewer = {
+    role: viewerRole,
+    canViewSensitive: viewerRole === "doctor",
+    licenseNumber: cookieStore.get(AUTH_LICENSE_COOKIE_NAME)?.value ?? null,
+    licenseVerified:
+      cookieStore.get(AUTH_LICENSE_VERIFIED_COOKIE_NAME)?.value === "true"
+  };
 
   if (!hasSupabaseEnv() || !accessToken || accessToken === DEMO_SESSION_TOKEN) {
-    return mockDashboardData;
+    return {
+      ...mockDashboardData,
+      viewer
+    };
   }
 
   const supabase = createServerSupabaseClient(accessToken);
 
   if (!supabase) {
-    return mockDashboardData;
+    return {
+      ...mockDashboardData,
+      viewer
+    };
   }
 
   try {
@@ -89,6 +108,7 @@ export async function getDashboardData(): Promise<DashboardData> {
     return {
       ...mockDashboardData,
       demoMode: false,
+      viewer,
       profile:
         profileResult.data && !profileResult.error
           ? mapProfile(profileResult.data as Record<string, unknown>)
@@ -107,6 +127,9 @@ export async function getDashboardData(): Promise<DashboardData> {
           : mockDashboardData.diagnoses
     };
   } catch {
-    return mockDashboardData;
+    return {
+      ...mockDashboardData,
+      viewer
+    };
   }
 }

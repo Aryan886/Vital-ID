@@ -17,13 +17,18 @@ import { formatDate } from "@/lib/utils";
 export default async function MedicalIdentityPage() {
   const data = await getDashboardData();
   const latestRecord = data.medicalRecords[0];
+  const canEdit = data.viewer.role === "doctor";
 
   return (
     <>
       <PageHeader
         eyebrow="Medical ID"
         title="Portable patient identity with live clinical context"
-        description="Maintain a single trusted view of patient demographics, vitals, allergies, conditions, medications, and emergency information."
+        description={
+          canEdit
+            ? "Maintain a single trusted view of patient demographics, vitals, allergies, conditions, medications, and emergency information."
+            : "Review your protected medical identity record. Editing remains restricted to verified doctor sessions."
+        }
         demoMode={data.demoMode}
       />
 
@@ -38,6 +43,7 @@ export default async function MedicalIdentityPage() {
             demoMode={data.demoMode}
             latestRecord={latestRecord}
             profile={data.profile}
+            canEdit={canEdit}
           />
         </TabsContent>
 

@@ -9,11 +9,22 @@ export default async function CredentialsPage() {
     <>
       <PageHeader
         eyebrow="Verified Credentials"
-        title="Trust signals for every clinician and partner"
-        description="Give operations teams a professional verification ledger for medical staff, labs, insurers, and external networks participating in each care workflow."
+        title={
+          data.viewer.canViewSensitive
+            ? "Trust signals for every clinician and partner"
+            : "Trusted providers connected to your care"
+        }
+        description={
+          data.viewer.canViewSensitive
+            ? "Give operations teams a professional verification ledger for medical staff, labs, insurers, and external networks participating in each care workflow."
+            : "Patient mode shows trust coverage without exposing provider-sensitive verification metadata."
+        }
         demoMode={data.demoMode}
       />
-      <CredentialsTable credentials={data.credentials} />
+      <CredentialsTable
+        credentials={data.credentials}
+        canViewSensitive={data.viewer.canViewSensitive}
+      />
     </>
   );
 }

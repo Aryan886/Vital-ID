@@ -2,6 +2,12 @@ import type { DashboardData } from "@/types";
 
 export const mockDashboardData: DashboardData = {
   demoMode: true,
+  viewer: {
+    role: "patient",
+    canViewSensitive: false,
+    licenseNumber: null,
+    licenseVerified: false
+  },
   profile: {
     id: "profile-demo-01",
     fullName: "Anika Sharma",

@@ -29,6 +29,7 @@ const statIcons = {
 
 export default async function DashboardPage() {
   const data = await getDashboardData();
+  const canViewSensitive = data.viewer.canViewSensitive;
 
   const stats = [
     {
@@ -61,8 +62,16 @@ export default async function DashboardPage() {
     <>
       <PageHeader
         eyebrow="Dashboard Overview"
-        title="Clinical operations at a glance"
-        description="A high-trust overview of recent reports, consultations, diagnosis activity, and credential status for the active medical profile."
+        title={
+          canViewSensitive
+            ? "Clinical operations at a glance"
+            : "Your privacy-aware medical dashboard"
+        }
+        description={
+          canViewSensitive
+            ? "A high-trust overview of recent reports, consultations, diagnosis activity, and credential status for the active medical profile."
+            : "Review your records, consultations, and case progress while protected clinician-only details stay hidden."
+        }
         demoMode={data.demoMode}
       />
 
@@ -175,9 +184,13 @@ export default async function DashboardPage() {
           <div className="grid gap-6 xl:grid-cols-[1.1fr_0.9fr]">
             <Card>
               <CardHeader>
-                <CardTitle>Case collaboration feed</CardTitle>
+                <CardTitle>
+                  {canViewSensitive ? "Case collaboration feed" : "Case status feed"}
+                </CardTitle>
                 <CardDescription>
-                  Recent notes shared across active diagnosis cases.
+                  {canViewSensitive
+                    ? "Recent notes shared across active diagnosis cases."
+                    : "Protected case updates with internal clinician commentary removed."}
                 </CardDescription>
               </CardHeader>
               <CardContent className="space-y-4">
@@ -190,7 +203,9 @@ export default async function DashboardPage() {
                       <div>
                         <p className="font-semibold text-slate-900">{entry.caseId}</p>
                         <p className="text-sm text-slate-500">
-                          {entry.authorName} / {entry.specialty}
+                          {canViewSensitive
+                            ? `${entry.authorName} / ${entry.specialty}`
+                            : "Clinician identity hidden"}
                         </p>
                       </div>
                       <Badge
@@ -205,7 +220,11 @@ export default async function DashboardPage() {
                         {entry.status}
                       </Badge>
                     </div>
-                    <p className="mt-4 text-sm leading-7 text-slate-600">{entry.note}</p>
+                    <p className="mt-4 text-sm leading-7 text-slate-600">
+                      {canViewSensitive
+                        ? entry.note
+                        : "Internal diagnosis notes are hidden in patient mode. The case status above remains visible."}
+                    </p>
                   </div>
                 ))}
               </CardContent>
@@ -213,9 +232,13 @@ export default async function DashboardPage() {
 
             <Card>
               <CardHeader>
-                <CardTitle>Credential pulse</CardTitle>
+                <CardTitle>
+                  {canViewSensitive ? "Credential pulse" : "Provider trust pulse"}
+                </CardTitle>
                 <CardDescription>
-                  Verification status of clinicians, labs, and coverage partners.
+                  {canViewSensitive
+                    ? "Verification status of clinicians, labs, and coverage partners."
+                    : "High-level trust coverage without exposing issuer or provider-sensitive details."}
                 </CardDescription>
               </CardHeader>
               <CardContent className="space-y-4">
@@ -225,11 +248,19 @@ export default async function DashboardPage() {
                     className="flex items-start justify-between gap-4 rounded-3xl border border-border/70 bg-slate-50/70 p-5"
                   >
                     <div>
-                      <p className="font-semibold text-slate-900">{credential.subject}</p>
-                      <p className="mt-1 text-sm text-slate-500">
-                        {credential.issuer}
+                      <p className="font-semibold text-slate-900">
+                        {canViewSensitive ? credential.subject : "Verified provider"}
                       </p>
-                      <p className="mt-3 text-sm text-slate-600">{credential.type}</p>
+                      <p className="mt-1 text-sm text-slate-500">
+                        {canViewSensitive
+                          ? credential.issuer
+                          : "Sensitive issuer details hidden"}
+                      </p>
+                      <p className="mt-3 text-sm text-slate-600">
+                        {canViewSensitive
+                          ? credential.type
+                          : "Credential category protected"}
+                      </p>
                     </div>
                     <Badge
                       variant={

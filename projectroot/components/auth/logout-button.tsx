@@ -6,6 +6,9 @@ import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import {
   AUTH_COOKIE_NAME,
+  AUTH_LICENSE_COOKIE_NAME,
+  AUTH_LICENSE_VERIFIED_COOKIE_NAME,
+  AUTH_ROLE_COOKIE_NAME,
   createBrowserSupabaseClient
 } from "@/lib/supabase/client";
 
@@ -20,6 +23,9 @@ export function LogoutButton() {
     }
 
     document.cookie = `${AUTH_COOKIE_NAME}=; path=/; max-age=0; samesite=lax`;
+    document.cookie = `${AUTH_ROLE_COOKIE_NAME}=; path=/; max-age=0; samesite=lax`;
+    document.cookie = `${AUTH_LICENSE_COOKIE_NAME}=; path=/; max-age=0; samesite=lax`;
+    document.cookie = `${AUTH_LICENSE_VERIFIED_COOKIE_NAME}=; path=/; max-age=0; samesite=lax`;
     router.push("/login");
     router.refresh();
   };

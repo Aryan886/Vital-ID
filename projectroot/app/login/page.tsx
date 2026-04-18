@@ -3,12 +3,13 @@ import { ShieldPlus } from "lucide-react";
 import { redirect } from "next/navigation";
 
 import { LoginForm } from "@/components/auth/login-form";
-import { AUTH_COOKIE_NAME } from "@/lib/supabase/client";
+import { AUTH_COOKIE_NAME, AUTH_ROLE_COOKIE_NAME, isSessionRole } from "@/lib/supabase/client";
 
 export default async function LoginPage() {
   const cookieStore = await cookies();
+  const roleValue = cookieStore.get(AUTH_ROLE_COOKIE_NAME)?.value;
 
-  if (cookieStore.get(AUTH_COOKIE_NAME)?.value) {
+  if (cookieStore.get(AUTH_COOKIE_NAME)?.value && isSessionRole(roleValue)) {
     redirect("/dashboard");
   }
 
@@ -25,12 +26,11 @@ export default async function LoginPage() {
             </p>
           </div>
           <h1 className="mt-8 max-w-xl font-serif text-5xl leading-tight text-slate-900">
-            Protected health identity for collaborative care teams.
+            Protected medical access for patients and doctors.
           </h1>
           <p className="mt-6 max-w-2xl text-base leading-8 text-slate-600">
-            Vital ID combines a high-trust dashboard, portable patient identity,
-            collaborative diagnosis threads, and verified partner credentials in
-            one secure workflow.
+            Patient sessions redact internal clinical details, while doctor
+            sessions unlock the full platform after licence verification.
           </p>
         </section>
 

@@ -1,7 +1,13 @@
 import { Award, ShieldCheck } from "lucide-react";
 
 import { Badge } from "@/components/ui/badge";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle
+} from "@/components/ui/card";
 import {
   Table,
   TableBody,
@@ -15,37 +21,76 @@ import type { Credential } from "@/types";
 
 interface CredentialsTableProps {
   credentials: Credential[];
+  canViewSensitive: boolean;
 }
 
-export function CredentialsTable({ credentials }: CredentialsTableProps) {
+export function CredentialsTable({
+  credentials,
+  canViewSensitive
+}: CredentialsTableProps) {
   return (
     <div className="grid gap-6 xl:grid-cols-[1.2fr_0.8fr]">
       <Card>
         <CardHeader>
-          <CardTitle>Verification ledger</CardTitle>
+          <CardTitle>
+            {canViewSensitive ? "Verification ledger" : "Trusted network summary"}
+          </CardTitle>
           <CardDescription>
-            Track provider trust signals, partner attestations, and recent
-            validation events in one enterprise-ready table.
+            {canViewSensitive
+              ? "Track provider trust signals, partner attestations, and recent validation events in one enterprise-ready table."
+              : "Patient mode keeps issuer and provider-sensitive details hidden while still showing trust coverage."}
           </CardDescription>
         </CardHeader>
         <CardContent>
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead>Subject</TableHead>
-                <TableHead>Issuer</TableHead>
-                <TableHead>Type</TableHead>
-                <TableHead>Status</TableHead>
-                <TableHead>Last checked</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
+          {canViewSensitive ? (
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>Subject</TableHead>
+                  <TableHead>Issuer</TableHead>
+                  <TableHead>Type</TableHead>
+                  <TableHead>Status</TableHead>
+                  <TableHead>Last checked</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {credentials.map((credential) => (
+                  <TableRow key={credential.id}>
+                    <TableCell className="font-medium">{credential.subject}</TableCell>
+                    <TableCell>{credential.issuer}</TableCell>
+                    <TableCell>{credential.type}</TableCell>
+                    <TableCell>
+                      <Badge
+                        variant={
+                          credential.status === "Verified"
+                            ? "success"
+                            : credential.status === "Pending Review"
+                              ? "warning"
+                              : "outline"
+                        }
+                      >
+                        {credential.status}
+                      </Badge>
+                    </TableCell>
+                    <TableCell>{formatDateTime(credential.lastChecked)}</TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
+          ) : (
+            <div className="grid gap-4 md:grid-cols-2">
               {credentials.map((credential) => (
-                <TableRow key={credential.id}>
-                  <TableCell className="font-medium">{credential.subject}</TableCell>
-                  <TableCell>{credential.issuer}</TableCell>
-                  <TableCell>{credential.type}</TableCell>
-                  <TableCell>
+                <div
+                  key={credential.id}
+                  className="rounded-3xl border border-border/70 bg-slate-50/70 p-5"
+                >
+                  <div className="flex items-center justify-between gap-3">
+                    <div>
+                      <p className="font-semibold text-slate-900">Verified provider</p>
+                      <p className="mt-1 text-sm text-slate-500">
+                        Sensitive issuer details hidden
+                      </p>
+                    </div>
                     <Badge
                       variant={
                         credential.status === "Verified"
@@ -57,12 +102,14 @@ export function CredentialsTable({ credentials }: CredentialsTableProps) {
                     >
                       {credential.status}
                     </Badge>
-                  </TableCell>
-                  <TableCell>{formatDateTime(credential.lastChecked)}</TableCell>
-                </TableRow>
+                  </div>
+                  <p className="mt-4 text-sm text-slate-600">
+                    Last updated {formatDateTime(credential.lastChecked)}
+                  </p>
+                </div>
               ))}
-            </TableBody>
-          </Table>
+            </div>
+          )}
         </CardContent>
       </Card>
 
@@ -109,12 +156,14 @@ export function CredentialsTable({ credentials }: CredentialsTableProps) {
           </CardHeader>
           <CardContent className="space-y-4 text-sm leading-7 text-slate-600">
             <p>
-              All issued credentials should be revalidated after role change,
-              annual renewal, or upstream compliance exception.
+              {canViewSensitive
+                ? "All issued credentials should be revalidated after role change, annual renewal, or upstream compliance exception."
+                : "All connected providers in this workspace have passed the platform trust checks required for patient-facing access."}
             </p>
             <p>
-              Consider pairing the `profiles` table with an audit log table if
-              you need immutable evidence of verification lifecycle changes.
+              {canViewSensitive
+                ? "Consider pairing the `profiles` table with an audit log table if you need immutable evidence of verification lifecycle changes."
+                : "Detailed issuer metadata remains hidden in patient mode to prevent exposure of provider-sensitive operational records."}
             </p>
           </CardContent>
         </Card>

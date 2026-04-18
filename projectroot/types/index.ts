@@ -1,3 +1,5 @@
+export type SessionRole = "doctor" | "patient";
+
 export interface Consultation {
   id: string;
   title: string;
@@ -51,8 +53,16 @@ export interface ProfileSummary {
   dob: string;
 }
 
+export interface ViewerContext {
+  role: SessionRole;
+  canViewSensitive: boolean;
+  licenseNumber: string | null;
+  licenseVerified: boolean;
+}
+
 export interface DashboardData {
   demoMode: boolean;
+  viewer: ViewerContext;
   profile: ProfileSummary;
   consultations: Consultation[];
   credentials: Credential[];

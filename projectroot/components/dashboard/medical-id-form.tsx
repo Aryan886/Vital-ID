@@ -4,7 +4,13 @@ import { HeartPulse, LoaderCircle, ShieldPlus } from "lucide-react";
 import { type FormEvent, useMemo, useState } from "react";
 
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle
+} from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
@@ -15,6 +21,7 @@ interface MedicalIdFormProps {
   demoMode: boolean;
   latestRecord: MedicalRecord;
   profile: ProfileSummary;
+  canEdit: boolean;
 }
 
 function toCsv(values: string[]) {
@@ -31,7 +38,8 @@ function fromCsv(value: string) {
 export function MedicalIdForm({
   demoMode,
   latestRecord,
-  profile
+  profile,
+  canEdit
 }: MedicalIdFormProps) {
   const [fullName, setFullName] = useState(profile.fullName);
   const [dob, setDob] = useState(profile.dob);
@@ -126,11 +134,12 @@ export function MedicalIdForm({
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
             <ShieldPlus className="h-5 w-5 text-teal-700" />
-            Medical ID editor
+            {canEdit ? "Medical ID editor" : "Medical ID summary"}
           </CardTitle>
           <CardDescription>
-            Capture a trusted snapshot of patient identity, core vitals, and
-            long-term history in one view.
+            {canEdit
+              ? "Capture a trusted snapshot of patient identity, core vitals, and long-term history in one view."
+              : "Patient mode provides a read-only summary. Protected medical fields can only be edited by doctors."}
           </CardDescription>
         </CardHeader>
         <CardContent>
@@ -142,6 +151,7 @@ export function MedicalIdForm({
                   id="full-name"
                   value={fullName}
                   onChange={(event) => setFullName(event.target.value)}
+                  disabled={!canEdit}
                 />
               </div>
               <div className="space-y-2">
@@ -151,6 +161,7 @@ export function MedicalIdForm({
                   type="date"
                   value={dob}
                   onChange={(event) => setDob(event.target.value)}
+                  disabled={!canEdit}
                 />
               </div>
               <div className="space-y-2">
@@ -159,6 +170,7 @@ export function MedicalIdForm({
                   id="emergency-contact"
                   value={emergencyContact}
                   onChange={(event) => setEmergencyContact(event.target.value)}
+                  disabled={!canEdit}
                 />
               </div>
               <div className="space-y-2">
@@ -167,6 +179,7 @@ export function MedicalIdForm({
                   id="insurance-provider"
                   value={insuranceProvider}
                   onChange={(event) => setInsuranceProvider(event.target.value)}
+                  disabled={!canEdit}
                 />
               </div>
             </div>
@@ -178,6 +191,7 @@ export function MedicalIdForm({
                   id="blood-pressure"
                   value={bloodPressure}
                   onChange={(event) => setBloodPressure(event.target.value)}
+                  disabled={!canEdit}
                 />
               </div>
               <div className="space-y-2">
@@ -187,6 +201,7 @@ export function MedicalIdForm({
                   type="number"
                   value={heartRate}
                   onChange={(event) => setHeartRate(event.target.value)}
+                  disabled={!canEdit}
                 />
               </div>
               <div className="space-y-2">
@@ -196,6 +211,7 @@ export function MedicalIdForm({
                   type="number"
                   value={oxygenSaturation}
                   onChange={(event) => setOxygenSaturation(event.target.value)}
+                  disabled={!canEdit}
                 />
               </div>
               <div className="space-y-2">
@@ -204,6 +220,7 @@ export function MedicalIdForm({
                   id="temperature"
                   value={temperature}
                   onChange={(event) => setTemperature(event.target.value)}
+                  disabled={!canEdit}
                 />
               </div>
               <div className="space-y-2">
@@ -213,6 +230,7 @@ export function MedicalIdForm({
                   type="number"
                   value={heightCm}
                   onChange={(event) => setHeightCm(event.target.value)}
+                  disabled={!canEdit}
                 />
               </div>
               <div className="space-y-2">
@@ -222,6 +240,7 @@ export function MedicalIdForm({
                   type="number"
                   value={weightKg}
                   onChange={(event) => setWeightKg(event.target.value)}
+                  disabled={!canEdit}
                 />
               </div>
             </div>
@@ -233,6 +252,7 @@ export function MedicalIdForm({
                   id="allergies"
                   value={allergies}
                   onChange={(event) => setAllergies(event.target.value)}
+                  disabled={!canEdit}
                 />
               </div>
               <div className="space-y-2">
@@ -241,6 +261,7 @@ export function MedicalIdForm({
                   id="conditions"
                   value={conditions}
                   onChange={(event) => setConditions(event.target.value)}
+                  disabled={!canEdit}
                 />
               </div>
               <div className="space-y-2">
@@ -249,6 +270,7 @@ export function MedicalIdForm({
                   id="medications"
                   value={medications}
                   onChange={(event) => setMedications(event.target.value)}
+                  disabled={!canEdit}
                 />
               </div>
             </div>
@@ -259,16 +281,22 @@ export function MedicalIdForm({
               </div>
             ) : null}
 
-            <Button type="submit" disabled={isSaving}>
-              {isSaving ? (
-                <>
-                  <LoaderCircle className="h-4 w-4 animate-spin" />
-                  Saving record
-                </>
-              ) : (
-                "Save medical ID"
-              )}
-            </Button>
+            {canEdit ? (
+              <Button type="submit" disabled={isSaving}>
+                {isSaving ? (
+                  <>
+                    <LoaderCircle className="h-4 w-4 animate-spin" />
+                    Saving record
+                  </>
+                ) : (
+                  "Save medical ID"
+                )}
+              </Button>
+            ) : (
+              <div className="rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm text-slate-600">
+                Doctor login is required to edit protected medical identity fields.
+              </div>
+            )}
           </form>
         </CardContent>
       </Card>
