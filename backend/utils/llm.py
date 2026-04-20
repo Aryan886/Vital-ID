@@ -5,7 +5,7 @@ from groq import Groq
 
 load_dotenv()
 
-client = Groq(api_key="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")
+client = Groq(api_key=os.getenv("GROQ_API"))
 
 
 def ask_llm(prompt: str) -> str:
