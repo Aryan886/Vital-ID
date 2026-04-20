@@ -37,7 +37,7 @@ export function PatientDashboard({ data }: PatientDashboardProps) {
   const latestRecord = medicalRecords[0];
   const qrRef = useRef<HTMLDivElement>(null);
 
-  const vitalIdNumber = `VID-${profile.id.slice(-6).toUpperCase()}`;
+  const vitalIdNumber = profile.vitalId ?? `VID-${profile.id.slice(-6).toUpperCase()}`;
 
   const qrData = JSON.stringify({
     vitalId: vitalIdNumber,
@@ -94,6 +94,11 @@ export function PatientDashboard({ data }: PatientDashboardProps) {
           {data.demoMode && (
             <Badge variant="warning" className="mb-3 w-fit text-xs">
               Demo data — connect Supabase for live records
+            </Badge>
+          )}
+          {data.loadError && (
+            <Badge variant="warning" className="mb-3 w-fit text-xs">
+              Live data failed: {data.loadError}
             </Badge>
           )}
           <p className="text-[11px] font-semibold uppercase tracking-[0.28em] text-teal-700">Dashboard Overview</p>

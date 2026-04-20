@@ -46,6 +46,20 @@ import type { DashboardData } from "@/types";
 
 type AccessMethod = "manual" | "qr";
 
+function getMockPatientLookupData(): PatientLookupData {
+  const latestRecord = mockDashboardData.medicalRecords[0];
+
+  return {
+    patientId: mockDashboardData.profile.id,
+    profile: mockDashboardData.profile,
+    age: null,
+    allergies: latestRecord?.allergies ?? [],
+    conditions: latestRecord?.conditions ?? [],
+    vaccinations: [],
+    medicalRecords: mockDashboardData.medicalRecords
+  };
+}
+
 export function DoctorDashboard() {
   const router = useRouter();
   const [accessMethod, setAccessMethod] = useState<AccessMethod>("manual");
@@ -82,7 +96,7 @@ export function DoctorDashboard() {
     try {
       await new Promise((r) => setTimeout(r, 800));
       if (!vitalId.trim() || !password.trim()) throw new Error("Please enter both Vital ID and password.");
-      setPatientData({ ...mockDashboardData, viewer: { role: "doctor", canViewSensitive: true, licenseNumber: null, licenseVerified: true } });
+      setPatientData(getMockPatientLookupData());
     } catch (err) {
       setError(err instanceof Error ? err.message : "Lookup failed.");
     } finally {
@@ -101,7 +115,7 @@ export function DoctorDashboard() {
     // Immediately load patient — no password required
     setLoading(true);
     await new Promise((r) => setTimeout(r, 600));
-    setPatientData({ ...mockDashboardData, viewer: { role: "doctor", canViewSensitive: true, licenseNumber: null, licenseVerified: true } });
+    setPatientData(getMockPatientLookupData());
     setLoading(false);
   };
 

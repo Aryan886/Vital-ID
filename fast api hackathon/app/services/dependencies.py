@@ -11,7 +11,12 @@ from app.db.consultation_repository import ConsultationRepository
 from app.db.insight_repository import InsightRepository
 from app.db.medical_history_repository import MedicalHistoryRepository
 from app.db.patient_repository import PatientRepository
-from app.db.supabase import SupabaseAuthGateway, get_supabase_auth_gateway
+from app.db.supabase import (
+    SupabaseAuthGateway,
+    SupabaseServiceRoleGateway,
+    get_supabase_auth_gateway,
+    get_supabase_service_role_gateway,
+)
 from app.db.treatment_repository import TreatmentRepository
 from app.db.user_repository import UserRepository
 from app.db.visibility_repository import VisibilityRepository
@@ -24,6 +29,7 @@ from app.services.forum_service import ForumService
 from app.services.notes_service import NotesService
 from app.services.patient_service import PatientService
 from app.services.patterns_service import PatternsService
+from app.services.signup_service import SignupService
 
 
 def get_user_repository() -> UserRepository:
@@ -74,6 +80,16 @@ def get_auth_service(
     return AuthService(
         auth_gateway=auth_gateway,
         user_repository=user_repository,
+        patient_repository=patient_repository,
+    )
+
+
+def get_signup_service(
+    service_role_gateway: SupabaseServiceRoleGateway = Depends(get_supabase_service_role_gateway),
+    patient_repository: PatientRepository = Depends(get_patient_repository),
+) -> SignupService:
+    return SignupService(
+        service_role_gateway=service_role_gateway,
         patient_repository=patient_repository,
     )
 

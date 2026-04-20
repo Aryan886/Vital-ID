@@ -34,6 +34,7 @@ import {
   createBrowserSupabaseClient,
   hasSupabaseEnv
 } from "@/lib/supabase/client";
+import { signupPatient } from "@/lib/fastapi";
 import type { SessionRole } from "@/types";
 
 function normaliseLicenseNumber(value: string) {
@@ -42,6 +43,13 @@ function normaliseLicenseNumber(value: string) {
 
 function isValidLicenseFormat(value: string) {
   return /^[A-Z]{2,6}-?\d{4,10}$/.test(value);
+}
+
+function toList(value: string) {
+  return value
+    .split(",")
+    .map((item) => item.trim())
+    .filter(Boolean);
 }
 
 function setSessionCookies({
@@ -104,6 +112,7 @@ export function LoginForm() {
   const [regError, setRegError] = useState<string | null>(null);
   const [regLoading, setRegLoading] = useState(false);
   const [generatedVitalId, setGeneratedVitalId] = useState<string | null>(null);
+  const [registeredSessionReady, setRegisteredSessionReady] = useState(false);
 
   const isDoctorMode = mode === "doctor";
   const normalizedLicense = normaliseLicenseNumber(licenseNumber);
@@ -116,6 +125,9 @@ export function LoginForm() {
     setActiveTab(value as "patient" | "doctor" | "register");
     setErrorMessage(null);
     setRegError(null);
+    if (value !== "register") {
+      setRegisteredSessionReady(false);
+    }
   };
 
   const handleLicenseChange = (value: string) => {
@@ -215,12 +227,55 @@ export function LoginForm() {
 
     setRegLoading(true);
     try {
-      // Simulate account creation (replace with Supabase signup in production)
-      await new Promise((r) => setTimeout(r, 1000));
-      const newVitalId = generateVitalId();
-      setGeneratedVitalId(newVitalId);
-    } catch {
-      setRegError("Failed to create account. Please try again.");
+      if (!hasSupabaseEnv()) {
+        await new Promise((r) => setTimeout(r, 1000));
+        setGeneratedVitalId(generateVitalId());
+        setRegisteredSessionReady(false);
+        return;
+      }
+
+      const supabase = createBrowserSupabaseClient();
+      if (!supabase) throw new Error("Supabase client could not be created.");
+
+      const created = await signupPatient({
+        full_name: regFullName.trim(),
+        email: regEmail.trim(),
+        password: regPassword,
+        blood_group: regBloodType,
+        dob: regDob,
+        emergency_contact: regPhone.trim() || null,
+        allergies: toList(regAllergies)
+      });
+
+      setGeneratedVitalId(created.vital_id);
+      setPatientEmail(regEmail.trim());
+
+      const { data, error } = await supabase.auth.signInWithPassword({
+        email: regEmail.trim(),
+        password: regPassword
+      });
+
+      if (error || !data.session?.access_token) {
+        setPatientPassword("");
+        setRegisteredSessionReady(false);
+        setRegError(
+          error?.message
+            ? `Profile created, but automatic sign-in failed: ${error.message}`
+            : "Profile created, but automatic sign-in failed. Please sign in manually."
+        );
+        return;
+      }
+
+      setSessionCookies({
+        accessToken: data.session.access_token,
+        role: "patient",
+        licenseNumber: null,
+        licenseVerified: false
+      });
+      setRegisteredSessionReady(true);
+    } catch (error) {
+      setRegisteredSessionReady(false);
+      setRegError(error instanceof Error ? error.message : "Failed to create account. Please try again.");
     } finally {
       setRegLoading(false);
     }
@@ -356,16 +411,28 @@ export function LoginForm() {
                 <div className="rounded-xl border border-amber-100 bg-amber-50 px-4 py-3 text-xs text-amber-700 text-left w-full">
                   🔒 Save this ID safely. You'll need it for doctor access and emergency situations.
                 </div>
+                {regError && (
+                  <div className="w-full rounded-2xl border border-amber-200 bg-amber-50 px-4 py-3 text-left text-sm text-amber-700">
+                    {regError}
+                  </div>
+                )}
                 <div className="flex items-center gap-2 text-sm text-slate-500">
                   <QrCode className="h-4 w-4 text-teal-600" />
                   Your QR code will be available after you sign in
                 </div>
                 <Button
                   className="w-full bg-teal-700 hover:bg-teal-800"
-                  onClick={() => handleTabChange("patient")}
+                  onClick={() => {
+                    if (registeredSessionReady) {
+                      router.push("/dashboard");
+                      router.refresh();
+                      return;
+                    }
+                    handleTabChange("patient");
+                  }}
                 >
                   <LockKeyhole className="mr-2 h-4 w-4" />
-                  Sign in to your new account
+                  {registeredSessionReady ? "Enter your dashboard" : "Sign in to your new account"}
                 </Button>
               </div>
             ) : (
@@ -374,6 +441,12 @@ export function LoginForm() {
                 <div className="rounded-2xl border border-teal-100 bg-teal-50 px-4 py-3 text-sm text-teal-800">
                   Create your free VitalID — a universal medical identity that gives doctors instant access to your health info in emergencies.
                 </div>
+
+                {!hasSupabaseEnv() && (
+                  <div className="rounded-2xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-700">
+                    Demo signup is active. Add Supabase and FastAPI environment variables, then restart the app, to save new profiles.
+                  </div>
+                )}
 
                 {/* Personal Info */}
                 <div className="space-y-1">

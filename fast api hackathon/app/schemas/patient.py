@@ -19,6 +19,7 @@ class FieldPermissions(BaseModel):
 class PatientProfileItem(BaseModel):
     id: str
     user_id: str | None = None
+    vital_id: str | None = None
     full_name: str
     role: str = "Patient"
     age: int | None = None

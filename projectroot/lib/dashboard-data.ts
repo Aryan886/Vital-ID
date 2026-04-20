@@ -61,8 +61,13 @@ export async function getDashboardData(): Promise<DashboardData> {
       consultations: [],
       alerts: []
     };
-  } catch {
-    return { ...mockDashboardData, viewer };
+  } catch (error) {
+    return {
+      ...mockDashboardData,
+      demoMode: false,
+      viewer,
+      loadError: error instanceof Error ? error.message : "Unable to load live dashboard data."
+    };
   }
 }
 
@@ -87,7 +92,12 @@ export async function getPatientIdentityData(): Promise<DashboardData> {
       accessToken
     });
     return mapPatientResponseToDashboardData(data, viewer);
-  } catch {
-    return { ...mockDashboardData, viewer };
+  } catch (error) {
+    return {
+      ...mockDashboardData,
+      demoMode: false,
+      viewer,
+      loadError: error instanceof Error ? error.message : "Unable to load live identity data."
+    };
   }
 }

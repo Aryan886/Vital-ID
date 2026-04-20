@@ -32,6 +32,200 @@ class SupabaseAuthGateway:
         )
 
 
+class SupabaseServiceRoleGateway:
+    def __init__(self, settings: Settings) -> None:
+        if not settings.supabase_service_role_key:
+            raise HTTPException(
+                status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+                detail="SUPABASE_SERVICE_ROLE_KEY is required for patient signup.",
+            )
+
+        self.settings = settings
+        self.auth_url = f"{settings.supabase_url}/auth/v1"
+        self.base_url = f"{settings.supabase_url}/rest/v1"
+        self.default_headers = {
+            "apikey": settings.supabase_service_role_key,
+            "Authorization": f"Bearer {settings.supabase_service_role_key}",
+            "Accept-Profile": settings.supabase_schema,
+            "Content-Profile": settings.supabase_schema,
+        }
+
+    async def create_auth_user(
+        self,
+        *,
+        email: str,
+        password: str,
+        metadata: dict[str, Any],
+    ) -> dict[str, Any]:
+        async with httpx.AsyncClient(timeout=self.settings.request_timeout_seconds) as client:
+            response = await client.post(
+                f"{self.auth_url}/admin/users",
+                headers={
+                    "apikey": self.settings.supabase_service_role_key,
+                    "Authorization": f"Bearer {self.settings.supabase_service_role_key}",
+                },
+                json={
+                    "email": email,
+                    "password": password,
+                    "email_confirm": True,
+                    "user_metadata": metadata,
+                    "app_metadata": {"role": "patient"},
+                },
+            )
+
+        if response.status_code in {status.HTTP_200_OK, status.HTTP_201_CREATED}:
+            return response.json()
+
+        detail = _extract_error_detail(response)
+        if response.status_code in {
+            status.HTTP_400_BAD_REQUEST,
+            status.HTTP_409_CONFLICT,
+            status.HTTP_422_UNPROCESSABLE_ENTITY,
+        }:
+            raise HTTPException(
+                status_code=status.HTTP_409_CONFLICT,
+                detail=f"Unable to create Supabase auth user: {detail}",
+            )
+
+        raise HTTPException(
+            status_code=status.HTTP_502_BAD_GATEWAY,
+            detail=f"Supabase auth admin request failed: {detail}",
+        )
+
+    async def delete_auth_user(self, user_id: str) -> None:
+        async with httpx.AsyncClient(timeout=self.settings.request_timeout_seconds) as client:
+            response = await client.delete(
+                f"{self.auth_url}/admin/users/{user_id}",
+                headers={
+                    "apikey": self.settings.supabase_service_role_key,
+                    "Authorization": f"Bearer {self.settings.supabase_service_role_key}",
+                },
+            )
+
+        if response.is_success or response.status_code == status.HTTP_404_NOT_FOUND:
+            return
+
+        detail = _extract_error_detail(response)
+        raise HTTPException(
+            status_code=status.HTTP_502_BAD_GATEWAY,
+            detail=f"Supabase auth rollback failed: {detail}",
+        )
+
+    async def select_rows(
+        self,
+        table: str,
+        *,
+        columns: str = "*",
+        filters: dict[str, str] | None = None,
+        limit: int | None = None,
+    ) -> list[dict[str, Any]]:
+        params: dict[str, str | int] = {"select": columns}
+        if filters:
+            params.update(filters)
+        if limit is not None:
+            params["limit"] = limit
+
+        async with httpx.AsyncClient(timeout=self.settings.request_timeout_seconds) as client:
+            response = await client.get(
+                f"{self.base_url}/{table}",
+                headers=self.default_headers,
+                params=params,
+            )
+
+        self._raise_for_status(response)
+        payload = response.json()
+        return payload if isinstance(payload, list) else []
+
+    async def select_one(
+        self,
+        table: str,
+        *,
+        columns: str = "*",
+        filters: dict[str, str] | None = None,
+    ) -> dict[str, Any] | None:
+        rows = await self.select_rows(
+            table,
+            columns=columns,
+            filters=filters,
+            limit=1,
+        )
+        return rows[0] if rows else None
+
+    async def insert(
+        self,
+        table: str,
+        *,
+        payload: dict[str, Any] | list[dict[str, Any]],
+        returning: str = "representation",
+    ) -> list[dict[str, Any]]:
+        headers = {
+            **self.default_headers,
+            "Prefer": f"return={returning}",
+        }
+        async with httpx.AsyncClient(timeout=self.settings.request_timeout_seconds) as client:
+            response = await client.post(
+                f"{self.base_url}/{table}",
+                headers=headers,
+                json=payload,
+            )
+
+        self._raise_for_status(response)
+        data = response.json()
+        if isinstance(data, list):
+            return data
+        if isinstance(data, dict):
+            return [data]
+        return []
+
+    async def upsert(
+        self,
+        table: str,
+        *,
+        payload: dict[str, Any] | list[dict[str, Any]],
+        on_conflict: str | None = None,
+        returning: str = "representation",
+    ) -> list[dict[str, Any]]:
+        headers = {
+            **self.default_headers,
+            "Prefer": f"resolution=merge-duplicates,return={returning}",
+        }
+        params: dict[str, str] = {}
+        if on_conflict:
+            params["on_conflict"] = on_conflict
+
+        async with httpx.AsyncClient(timeout=self.settings.request_timeout_seconds) as client:
+            response = await client.post(
+                f"{self.base_url}/{table}",
+                headers=headers,
+                params=params,
+                json=payload,
+            )
+
+        self._raise_for_status(response)
+        data = response.json()
+        if isinstance(data, list):
+            return data
+        if isinstance(data, dict):
+            return [data]
+        return []
+
+    def _raise_for_status(self, response: httpx.Response) -> None:
+        if response.is_success:
+            return
+
+        detail = _extract_error_detail(response)
+        if response.status_code == status.HTTP_409_CONFLICT:
+            raise HTTPException(
+                status_code=status.HTTP_409_CONFLICT,
+                detail=f"Supabase signup data conflict: {detail}",
+            )
+
+        raise HTTPException(
+            status_code=status.HTTP_502_BAD_GATEWAY,
+            detail=f"Supabase service-role data request failed: {detail}",
+        )
+
+
 class SupabaseDataClient:
     def __init__(self, settings: Settings, access_token: str) -> None:
         self.settings = settings
@@ -217,6 +411,12 @@ def get_supabase_auth_gateway(
     settings: Settings = Depends(get_settings),
 ) -> SupabaseAuthGateway:
     return SupabaseAuthGateway(settings=settings)
+
+
+def get_supabase_service_role_gateway(
+    settings: Settings = Depends(get_settings),
+) -> SupabaseServiceRoleGateway:
+    return SupabaseServiceRoleGateway(settings=settings)
 
 
 def get_request_data_client(

@@ -365,8 +365,9 @@ class PatientService:
         return PatientProfileItem(
             id=str(patient["id"]),
             user_id=patient.get("user_id"),
-            full_name=profile.get("full_name") or "Unknown patient",
-            role=(profile.get("role") or "patient").title(),
+            vital_id=patient.get("vital_id"),
+            full_name=profile.get("full_name") or patient.get("full_name") or "Unknown patient",
+            role=(profile.get("role") or patient.get("role") or "patient").title(),
             age=patient.get("age"),
             weight=patient.get("weight"),
             height=patient.get("height"),

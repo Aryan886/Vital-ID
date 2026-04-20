@@ -45,6 +45,7 @@ export interface ApiFieldPermissions {
 export interface ApiPatientProfileItem {
   id: string;
   user_id?: string | null;
+  vital_id?: string | null;
   full_name: string;
   role: string;
   age?: number | null;
@@ -58,6 +59,26 @@ export interface ApiPatientProfileItem {
   emergency_contact?: string | null;
   insurance_provider?: string | null;
   created_at?: string | null;
+}
+
+export interface PatientSignupPayload {
+  full_name: string;
+  email: string;
+  password: string;
+  blood_group: string;
+  dob: string;
+  emergency_contact?: string | null;
+  allergies?: string[];
+}
+
+export interface PatientSignupResponse {
+  auth_user_id: string;
+  profile_id: string;
+  patient_id: string;
+  vital_id: string;
+  email: string;
+  full_name: string;
+  role: "patient";
 }
 
 export interface ApiMedicalRecordItem {
@@ -207,6 +228,7 @@ function normalizeList(value: unknown): string[] {
 function mapProfileSummary(profile: ApiPatientProfileItem): ProfileSummary {
   return {
     id: profile.id,
+    vitalId: profile.vital_id ?? null,
     fullName: profile.full_name,
     role: profile.role,
     bloodType: profile.blood_group ?? "Unknown",
@@ -370,6 +392,15 @@ export function getBrowserAccessToken() {
   return match ? decodeURIComponent(match[1]) : null;
 }
 
+export async function signupPatient(
+  payload: PatientSignupPayload
+): Promise<PatientSignupResponse> {
+  return fetchFastApiJson<PatientSignupResponse>("/api/auth/signup/patient", {
+    method: "POST",
+    body: JSON.stringify(payload)
+  });
+}
+
 export async function fetchFastApiJson<T>(
   path: string,
   options: RequestInit & { accessToken?: string | null } = {}
@@ -387,8 +418,35 @@ export async function fetchFastApiJson<T>(
 
   if (!response.ok) {
     const text = await response.text();
-    throw new Error(text || `FastAPI request failed with status ${response.status}`);
+    throw new Error(
+      readFastApiError(text) || `FastAPI request failed with status ${response.status}`
+    );
   }
 
   return response.json() as Promise<T>;
+}
+
+function readFastApiError(text: string) {
+  if (!text) return null;
+
+  try {
+    const payload = JSON.parse(text) as { detail?: unknown };
+    if (typeof payload.detail === "string") return payload.detail;
+    if (Array.isArray(payload.detail)) {
+      return payload.detail
+        .map((item) => {
+          if (typeof item === "string") return item;
+          if (item && typeof item === "object" && "msg" in item) {
+            return String((item as { msg: unknown }).msg);
+          }
+          return null;
+        })
+        .filter(Boolean)
+        .join(" ");
+    }
+  } catch {
+    return text;
+  }
+
+  return text;
 }

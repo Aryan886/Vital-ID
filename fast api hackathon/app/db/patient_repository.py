@@ -1,6 +1,6 @@
 from typing import Any
 
-from app.db.supabase import SupabaseDataClient
+from app.db.supabase import SupabaseDataClient, SupabaseServiceRoleGateway
 
 
 class PatientRepository:
@@ -24,6 +24,17 @@ class PatientRepository:
             "patients",
             columns="*",
             filters={"user_id": f"eq.{user_id}"},
+        )
+
+    async def get_patient_by_vital_id(
+        self,
+        data_client: SupabaseDataClient | SupabaseServiceRoleGateway,
+        vital_id: str,
+    ) -> dict[str, Any] | None:
+        return await data_client.select_one(
+            "patients",
+            columns="*",
+            filters={"vital_id": f"eq.{vital_id}"},
         )
 
     async def list_patients(
@@ -60,6 +71,14 @@ class PatientRepository:
         payload: dict[str, Any],
     ) -> dict[str, Any] | None:
         rows = await data_client.insert("medical_records", payload=payload)
+        return rows[0] if rows else None
+
+    async def create_patient(
+        self,
+        data_client: SupabaseServiceRoleGateway,
+        payload: dict[str, Any],
+    ) -> dict[str, Any] | None:
+        rows = await data_client.insert("patients", payload=payload)
         return rows[0] if rows else None
 
     async def update_patient(
@@ -123,6 +142,26 @@ class PatientRepository:
             "profiles",
             payload=payload,
             on_conflict="id",
+        )
+        return rows[0] if rows else None
+
+    async def create_profile(
+        self,
+        data_client: SupabaseServiceRoleGateway,
+        payload: dict[str, Any],
+    ) -> dict[str, Any] | None:
+        rows = await data_client.insert("profiles", payload=payload)
+        return rows[0] if rows else None
+
+    async def create_default_visibility_settings(
+        self,
+        data_client: SupabaseServiceRoleGateway,
+        patient_id: str,
+    ) -> dict[str, Any] | None:
+        rows = await data_client.upsert(
+            "patient_visibility_settings",
+            payload={"patient_id": patient_id},
+            on_conflict="patient_id",
         )
         return rows[0] if rows else None
 

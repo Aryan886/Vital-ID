@@ -79,6 +79,7 @@ export interface FieldPermissions {
 
 export interface ProfileSummary {
   id: string;
+  vitalId?: string | null;
   fullName: string;
   role: string;
   bloodType: string;
@@ -103,6 +104,7 @@ export interface Alert {
 export interface DashboardData {
   demoMode: boolean;
   viewer: ViewerContext;
+  loadError?: string;
   profile: ProfileSummary;
   consultations: Consultation[];
   credentials: Credential[];

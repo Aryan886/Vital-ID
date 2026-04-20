@@ -100,7 +100,7 @@ export function PatientMedicalID({ data }: { data: DashboardData }) {
     allergies: savedData.allergies,
     medications: savedData.medications,
     conditions: savedData.conditions,
-    vitalId: profile.id,
+    vitalId: profile.vitalId ?? profile.id,
     generatedAt: new Date().toISOString()
   });
 
@@ -161,6 +161,9 @@ export function PatientMedicalID({ data }: { data: DashboardData }) {
       <div className="flex flex-col gap-3 rounded-[1.5rem] border border-white/60 bg-white/70 p-6 backdrop-blur">
         {data.demoMode && (
           <Badge variant="warning" className="w-fit text-xs">Demo data — connect Supabase for live records</Badge>
+        )}
+        {data.loadError && (
+          <Badge variant="warning" className="w-fit text-xs">Live data failed: {data.loadError}</Badge>
         )}
         <p className="text-[11px] font-semibold uppercase tracking-[0.28em] text-teal-700">Medical ID</p>
         <h1 className="font-serif text-3xl text-slate-900 lg:text-4xl">Your medical record</h1>
